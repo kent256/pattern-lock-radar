@@ -1,30 +1,50 @@
 import requests
 import streamlit as st
+from random import randint, choice
 
-# API Config
-API_KEY = "eb716181022347133f61611c3c00831a"
-HEADERS = {
-    "X-RapidAPI-Key": API_KEY,
+# --- Primary API (API-Football) ---
+API_KEY_PRIMARY = "eb716181022347133f61611c3c00831a"
+HEADERS_PRIMARY = {
+    "X-RapidAPI-Key": API_KEY_PRIMARY,
     "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
 }
 
-# Function to get upcoming fixtures
+# --- Backup API (Football-Data.org) ---
+API_KEY_BACKUP = "8bbc74b52032420baaa66d3db6da6740"
+HEADERS_BACKUP = {
+    "X-Auth-Token": API_KEY_BACKUP
+}
+
+# --- Function: Primary API ---
 def get_fixtures():
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
-    query = {"next": 10}  # You can increase this number
-    response = requests.get(url, headers=HEADERS, params=query)
+    query = {"next": 10}
+    response = requests.get(url, headers=HEADERS_PRIMARY, params=query)
     data = response.json()
 
-    # SAFETY CHECK: Avoid crash if API fails or limit is hit
     if 'response' not in data:
-        st.error("❌ API request failed or daily limit reached. Check your API key or wait for reset.")
+        raise ValueError("Primary API failed")
+
+    return [(f['teams']['home']['name'], f['teams']['away']['name']) for f in data['response']]
+
+# --- Function: Backup API ---
+def get_fixtures_backup():
+    url = "https://api.football-data.org/v4/matches"
+    response = requests.get(url, headers=HEADERS_BACKUP)
+    data = response.json()
+
+    if 'matches' not in data:
+        st.error("❌ Backup API also failed. Try again later.")
         return []
 
-    return data['response']
+    fixtures = []
+    for match in data['matches'][:10]:
+        home = match['homeTeam']['name']
+        away = match['awayTeam']['name']
+        fixtures.append((home, away))
+    return fixtures
 
-
-# Simulate recent form for now
-from random import randint, choice
+# --- Simulate team form for now ---
 def mock_form():
     return {
         "goals_scored": [randint(0, 3) for _ in range(10)],
@@ -33,7 +53,7 @@ def mock_form():
         "first_half_goals": [randint(0, 2) for _ in range(10)],
     }
 
-# Pattern Detection Logic
+# --- Pattern Detection Logic ---
 def analyze_patterns(home, away):
     home_form = mock_form()
     away_form = mock_form()
@@ -52,18 +72,20 @@ def analyze_patterns(home, away):
         "First Half Over 0.5 Goals": f"{fh_goals:.0f}% ✅" if fh_goals >= 85 else f"{fh_goals:.0f}% ⚠️"
     }
 
-# Streamlit App Layout
+# --- Streamlit UI ---
 st.set_page_config(page_title="Pattern Lock Radar", layout="wide")
 st.title("🔐 Pattern Lock Radar - Global Fixture Tracker")
 
-fixtures = get_fixtures()
+# Try primary API, fallback to backup if needed
+try:
+    fixtures = get_fixtures()
+except:
+    fixtures = get_fixtures_backup()
 
-for match in fixtures:
-    teams = match['teams']
-    home = teams['home']['name']
-    away = teams['away']['name']
-    st.subheader(f"📊 {home} vs {away}")
-    patterns = analyze_patterns(home, away)
-    for market, result in patterns.items():
-        st.markdown(f"- **{market}**: {result}")
-    st.markdown("---")
+if fixtures:
+    for home, away in fixtures:
+        st.subheader(f"📊 {home} vs {away}")
+        patterns = analyze_patterns(home, away)
+        for market, result in patterns.items():
+            st.markdown(f"- **{market}**: {result}")
+        st.markdown("---")
