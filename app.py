@@ -71,10 +71,10 @@ def analyze_patterns(home, away):
     fh_goals = sum([g > 0 for g in home_form['first_half_goals'] + away_form['first_half_goals']]) / 20 * 100
 
     return {
-        "Over 0.5 Goals": f"{over_05:.0f}% ✅" if over_05 == 100 else f"{over_05:.0f}% ⚠️",
-        "Over 1.5 Goals": f"{over_15:.0f}% ✅" if over_15 >= 90 else f"{over_15:.0f}% ⚠️",
-        "Under 3.5 Goals": f"{under_35:.0f}% ✅" if under_35 >= 90 else f"{under_35:.0f}% ⚠️",
-        "Under 4.5 Goals": f"{under_45:.0f}% ✅" if under_45 >= 95 else f"{under_45:.0f}% ⚠️",
+        "Over 0.5 Goals": f"{over_05:.0f}% ✅" if over_05 >= 95 else f"{over_05:.0f}% ⚠️",
+        "Over 1.5 Goals": f"{over_15:.0f}% ✅" if over_15 >= 85 else f"{over_15:.0f}% ⚠️",
+        "Under 3.5 Goals": f"{under_35:.0f}% ✅" if under_35 >= 85 else f"{under_35:.0f}% ⚠️",
+        "Under 4.5 Goals": f"{under_45:.0f}% ✅" if under_45 >= 90 else f"{under_45:.0f}% ⚠️",
         "BTTS": f"{btts_rate:.0f}% ✅" if btts_rate >= 90 else f"{btts_rate:.0f}% ⚠️",
         "First Half Over 0.5 Goals": f"{fh_goals:.0f}% ✅" if fh_goals >= 85 else f"{fh_goals:.0f}% ⚠️"
     }
@@ -89,12 +89,12 @@ try:
 except:
     fixtures = get_fixtures_backup()
 
-# Only show games with 2+ strong patterns
+# Show only games with 1 or more high-confidence patterns
 if fixtures:
     for home, away in fixtures:
         patterns = analyze_patterns(home, away)
         strong_hits = [v for v in patterns.values() if "✅" in v]
-        if len(strong_hits) >= 2:
+        if len(strong_hits) >= 1:
             st.subheader(f"📊 {home} vs {away}")
             for market, result in patterns.items():
                 st.markdown(f"- **{market}**: {result}")
