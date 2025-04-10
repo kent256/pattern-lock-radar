@@ -14,7 +14,14 @@ def get_fixtures():
     query = {"next": 10}  # You can increase this number
     response = requests.get(url, headers=HEADERS, params=query)
     data = response.json()
+
+    # SAFETY CHECK: Avoid crash if API fails or limit is hit
+    if 'response' not in data:
+        st.error("❌ API request failed or daily limit reached. Check your API key or wait for reset.")
+        return []
+
     return data['response']
+
 
 # Simulate recent form for now
 from random import randint, choice
